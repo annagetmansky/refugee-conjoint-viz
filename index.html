@@ -1,38 +1,243 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Loading Test</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/recharts@2/dist/Recharts.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refugee Acceptance Study</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 10px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        h1 { font-size: 32px; margin-bottom: 10px; color: #1a202c; }
+        .subtitle { color: #718096; margin-bottom: 5px; }
+        .authors { font-size: 14px; color: #a0aec0; margin-bottom: 30px; }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; color: #2d3748; font-size: 14px; }
+        select { width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 14px; background: white; }
+        .checkboxes { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
+        .checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .checkbox-label input { width: 18px; height: 18px; cursor: pointer; }
+        .chart-container { position: relative; height: 400px; margin: 30px 0; }
+        .chart-title { font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #2d3748; }
+        .baseline-note { font-size: 16px; font-weight: normal; color: #718096; }
+        .info-box { padding: 20px; background: #edf2f7; border-radius: 8px; margin-top: 30px; }
+        .info-box h3 { font-weight: bold; margin-bottom: 10px; color: #2d3748; }
+        .info-box ul { line-height: 1.8; color: #4a5568; font-size: 14px; list-style-position: inside; }
+        .info-box p { font-size: 13px; color: #718096; font-style: italic; margin-top: 12px; }
+    </style>
 </head>
 <body>
-    <h1>Diagnostic Page</h1>
-    <div id="status"></div>
-    <div id="root"></div>
-    
+    <div class="container">
+        <h1>Humanitarian Concerns and Syrian Refugee Acceptance</h1>
+        <p class="subtitle">Interactive visualization of conjoint experiment results from Turkey</p>
+        <p class="authors">Anna Getmansky, Konstantinos Matakos, and Tolga Sinmazdemir</p>
+        
+        <div class="controls">
+            <div>
+                <label for="attribute">Refugee Attribute</label>
+                <select id="attribute" onchange="updateChart()">
+                    <option value="torture">Torture Experience</option>
+                    <option value="gender">Gender</option>
+                    <option value="age">Age</option>
+                    <option value="ethnicity">Ethnicity</option>
+                    <option value="religion">Religion</option>
+                    <option value="education">Education Level</option>
+                    <option value="localFriends">Local Connections</option>
+                    <option value="turkish">Turkish Language</option>
+                    <option value="foughtInWar">Conflict Involvement</option>
+                </select>
+            </div>
+            <div id="outcomeSelect">
+                <label for="outcome">Outcome</label>
+                <select id="outcome" onchange="updateChart()">
+                    <option value="neighbor">Accept as Neighbor</option>
+                    <option value="workPermit">Support Work Permit</option>
+                    <option value="citizenship">Support Citizenship</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="checkboxes">
+            <label class="checkbox-label">
+                <input type="checkbox" id="compare" onchange="toggleCompare()">
+                Compare all outcomes
+            </label>
+            <label class="checkbox-label" id="ciCheckbox">
+                <input type="checkbox" id="showCI" checked onchange="updateChart()">
+                Show 95% CI
+            </label>
+        </div>
+
+        <h2 class="chart-title" id="chartTitle"></h2>
+        <div class="chart-container">
+            <canvas id="chart"></canvas>
+        </div>
+
+        <div class="info-box">
+            <h3>Key Findings</h3>
+            <ul>
+                <li><strong>Torture information:</strong> +1.1pp neighbor acceptance, +1.9pp work permit support</li>
+                <li><strong>Turkish language:</strong> +3.9pp neighbor acceptance, +3.0pp work permit support</li>
+                <li><strong>University education:</strong> +5.3pp work permit support, +3.0pp neighbor acceptance</li>
+                <li><strong>Ethnicity penalties:</strong> Arab/Kurd face 6-7pp penalties vs Turkmen baseline</li>
+                <li><strong>Assad fighters:</strong> Face 6.5-6.9pp penalty; FSA fighters get +1.5-2.0pp</li>
+            </ul>
+            <p>All effects relative to baseline categories. Models include respondent fixed effects.</p>
+        </div>
+    </div>
+
     <script>
-        let status = "Starting...<br>";
-        
-        if (typeof React !== 'undefined') {
-            status += "✓ React loaded<br>";
-        } else {
-            status += "✗ React FAILED<br>";
+        const rawData = {
+            torture: [
+                { level: 'Not tortured', baseline: true },
+                { level: 'Tortured in Syria', neighbor: 0.011, neighborSE: 0.005, workPermit: 0.019, workPermitSE: 0.005, citizenship: 0.008, citizenshipSE: 0.005 }
+            ],
+            gender: [
+                { level: 'Male', baseline: true },
+                { level: 'Female', neighbor: 0.033, neighborSE: 0.005, workPermit: 0.023, workPermitSE: 0.005, citizenship: 0.020, citizenshipSE: 0.005 }
+            ],
+            age: [
+                { level: 'Middle-aged', baseline: true },
+                { level: 'Young', neighbor: 0.006, neighborSE: 0.007, workPermit: 0.004, workPermitSE: 0.007, citizenship: 0.002, citizenshipSE: 0.006 },
+                { level: 'Old', neighbor: 0.004, neighborSE: 0.007, workPermit: -0.003, workPermitSE: 0.007, citizenship: 0.003, citizenshipSE: 0.007 }
+            ],
+            ethnicity: [
+                { level: 'Turkmen', baseline: true },
+                { level: 'Arab', neighbor: -0.064, neighborSE: 0.007, workPermit: -0.064, workPermitSE: 0.007, citizenship: -0.058, citizenshipSE: 0.006 },
+                { level: 'Kurd', neighbor: -0.069, neighborSE: 0.007, workPermit: -0.067, workPermitSE: 0.007, citizenship: -0.056, citizenshipSE: 0.006 }
+            ],
+            religion: [
+                { level: 'Sunni', baseline: true },
+                { level: 'Alawite', neighbor: -0.009, neighborSE: 0.007, workPermit: -0.003, workPermitSE: 0.007, citizenship: -0.006, citizenshipSE: 0.006 },
+                { level: 'Christian', neighbor: -0.041, neighborSE: 0.007, workPermit: -0.034, workPermitSE: 0.007, citizenship: -0.034, citizenshipSE: 0.007 }
+            ],
+            education: [
+                { level: 'No education', baseline: true },
+                { level: 'Primary school', neighbor: -0.015, neighborSE: 0.009, workPermit: 0.002, workPermitSE: 0.009, citizenship: -0.005, citizenshipSE: 0.009 },
+                { level: 'Middle school', neighbor: 0.0003, neighborSE: 0.009, workPermit: 0.011, workPermitSE: 0.009, citizenship: 0.009, citizenshipSE: 0.008 },
+                { level: 'High school', neighbor: 0.006, neighborSE: 0.008, workPermit: 0.028, workPermitSE: 0.009, citizenship: 0.028, citizenshipSE: 0.008 },
+                { level: 'University', neighbor: 0.030, neighborSE: 0.009, workPermit: 0.053, workPermitSE: 0.009, citizenship: 0.038, citizenshipSE: 0.008 }
+            ],
+            localFriends: [
+                { level: 'No Turkish friends', baseline: true },
+                { level: 'Has Turkish friends', neighbor: 0.018, neighborSE: 0.005, workPermit: 0.011, workPermitSE: 0.005, citizenship: 0.011, citizenshipSE: 0.005 }
+            ],
+            turkish: [
+                { level: 'Does not know Turkish', baseline: true },
+                { level: 'Knows Turkish', neighbor: 0.039, neighborSE: 0.005, workPermit: 0.030, workPermitSE: 0.005, citizenship: 0.018, citizenshipSE: 0.005 }
+            ],
+            foughtInWar: [
+                { level: 'Did not fight', baseline: true },
+                { level: 'Fought with Assad', neighbor: -0.065, neighborSE: 0.007, workPermit: -0.069, workPermitSE: 0.007, citizenship: -0.045, citizenshipSE: 0.007 },
+                { level: 'Fought with FSA', neighbor: 0.015, neighborSE: 0.007, workPermit: 0.020, workPermitSE: 0.007, citizenship: 0.020, citizenshipSE: 0.007 }
+            ]
+        };
+
+        const labels = {
+            torture: 'Torture Experience', gender: 'Gender', age: 'Age', ethnicity: 'Ethnicity',
+            religion: 'Religion', education: 'Education Level', localFriends: 'Local Connections',
+            turkish: 'Turkish Language', foughtInWar: 'Conflict Involvement'
+        };
+
+        const outcomes = {
+            neighbor: 'Accept as Neighbor',
+            workPermit: 'Support Work Permit',
+            citizenship: 'Support Citizenship'
+        };
+
+        let chart = null;
+
+        function toggleCompare() {
+            const compare = document.getElementById('compare').checked;
+            document.getElementById('outcomeSelect').style.display = compare ? 'none' : 'block';
+            document.getElementById('ciCheckbox').style.display = compare ? 'none' : 'block';
+            updateChart();
         }
-        
-        if (typeof ReactDOM !== 'undefined') {
-            status += "✓ ReactDOM loaded<br>";
-        } else {
-            status += "✗ ReactDOM FAILED<br>";
+
+        function updateChart() {
+            const attribute = document.getElementById('attribute').value;
+            const outcome = document.getElementById('outcome').value;
+            const showCI = document.getElementById('showCI').checked;
+            const compare = document.getElementById('compare').checked;
+
+            const data = rawData[attribute].filter(d => !d.baseline);
+            const baseline = rawData[attribute].find(d => d.baseline).level;
+
+            const chartLabels = data.map(d => d.level);
+            
+            let datasets, title;
+            
+            if (compare) {
+                title = `${labels[attribute]} on All Outcomes (baseline: ${baseline})`;
+                datasets = [
+                    {
+                        label: 'Neighbor',
+                        data: data.map(d => d.neighbor * 100),
+                        backgroundColor: '#4299e1'
+                    },
+                    {
+                        label: 'Work Permit',
+                        data: data.map(d => d.workPermit * 100),
+                        backgroundColor: '#48bb78'
+                    },
+                    {
+                        label: 'Citizenship',
+                        data: data.map(d => d.citizenship * 100),
+                        backgroundColor: '#9f7aea'
+                    }
+                ];
+            } else {
+                title = `${labels[attribute]} on ${outcomes[outcome]} (baseline: ${baseline})`;
+                datasets = [{
+                    label: 'Effect (pp)',
+                    data: data.map(d => d[outcome] * 100),
+                    backgroundColor: data.map(d => d[outcome] > 0 ? '#48bb78' : '#f56565'),
+                    errorBars: showCI ? data.map(d => ({
+                        plus: (d[outcome] + 1.96 * d[outcome + 'SE']) * 100 - d[outcome] * 100,
+                        minus: d[outcome] * 100 - (d[outcome] - 1.96 * d[outcome + 'SE']) * 100
+                    })) : undefined
+                }];
+            }
+
+            document.getElementById('chartTitle').textContent = title;
+
+            if (chart) chart.destroy();
+
+            const ctx = document.getElementById('chart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: chartLabels, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            min: -10,
+                            max: 10,
+                            ticks: { callback: v => v + 'pp' },
+                            title: { display: true, text: 'Effect (percentage points)' },
+                            grid: { color: '#e2e8f0' }
+                        },
+                        x: {
+                            ticks: { maxRotation: 45, minRotation: 45 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: compare },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + 'pp';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
-        
-        if (typeof Recharts !== 'undefined') {
-            status += "✓ Recharts loaded<br>";
-        } else {
-            status += "✗ Recharts FAILED<br>";
-        }
-        
-        document.getElementById('status').innerHTML = status;
+
+        updateChart();
     </script>
 </body>
 </html>
