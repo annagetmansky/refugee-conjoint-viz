@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Refugee Acceptance Conjoint Experiment</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/recharts@2.5.0/dist/Recharts.js"></script>
+    <title>Refugee Acceptance Study</title>
+    <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.10.3/dist/Recharts.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
@@ -17,272 +17,158 @@
         const { useState } = React;
         const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, Cell } = Recharts;
 
-        const calculateCI = (estimate, se, zScore = 1.96) => {
-            return [estimate - zScore * se, estimate + zScore * se];
+        const calculateCI = (estimate, se) => [estimate - 1.96 * se, estimate + 1.96 * se];
+
+        const rawData = {
+            gender: [
+                { level: 'Male', baseline: true },
+                { level: 'Female', neighbor: 0.033, neighborSE: 0.005, workPermit: 0.023, workPermitSE: 0.005, citizenship: 0.020, citizenshipSE: 0.005 }
+            ],
+            age: [
+                { level: 'Middle-aged', baseline: true },
+                { level: 'Young', neighbor: 0.006, neighborSE: 0.007, workPermit: 0.004, workPermitSE: 0.007, citizenship: 0.002, citizenshipSE: 0.006 },
+                { level: 'Old', neighbor: 0.004, neighborSE: 0.007, workPermit: -0.003, workPermitSE: 0.007, citizenship: 0.003, citizenshipSE: 0.007 }
+            ],
+            ethnicity: [
+                { level: 'Turkmen', baseline: true },
+                { level: 'Arab', neighbor: -0.064, neighborSE: 0.007, workPermit: -0.064, workPermitSE: 0.007, citizenship: -0.058, citizenshipSE: 0.006 },
+                { level: 'Kurd', neighbor: -0.069, neighborSE: 0.007, workPermit: -0.067, workPermitSE: 0.007, citizenship: -0.056, citizenshipSE: 0.006 }
+            ],
+            religion: [
+                { level: 'Sunni', baseline: true },
+                { level: 'Alawite', neighbor: -0.009, neighborSE: 0.007, workPermit: -0.003, workPermitSE: 0.007, citizenship: -0.006, citizenshipSE: 0.006 },
+                { level: 'Christian', neighbor: -0.041, neighborSE: 0.007, workPermit: -0.034, workPermitSE: 0.007, citizenship: -0.034, citizenshipSE: 0.007 }
+            ],
+            education: [
+                { level: 'No education', baseline: true },
+                { level: 'Primary school', neighbor: -0.015, neighborSE: 0.009, workPermit: 0.002, workPermitSE: 0.009, citizenship: -0.005, citizenshipSE: 0.009 },
+                { level: 'Middle school', neighbor: 0.0003, neighborSE: 0.009, workPermit: 0.011, workPermitSE: 0.009, citizenship: 0.009, citizenshipSE: 0.008 },
+                { level: 'High school', neighbor: 0.006, neighborSE: 0.008, workPermit: 0.028, workPermitSE: 0.009, citizenship: 0.028, citizenshipSE: 0.008 },
+                { level: 'University', neighbor: 0.030, neighborSE: 0.009, workPermit: 0.053, workPermitSE: 0.009, citizenship: 0.038, citizenshipSE: 0.008 }
+            ],
+            localFriends: [
+                { level: 'No Turkish friends', baseline: true },
+                { level: 'Has Turkish friends', neighbor: 0.018, neighborSE: 0.005, workPermit: 0.011, workPermitSE: 0.005, citizenship: 0.011, citizenshipSE: 0.005 }
+            ],
+            turkish: [
+                { level: 'Does not know Turkish', baseline: true },
+                { level: 'Knows Turkish', neighbor: 0.039, neighborSE: 0.005, workPermit: 0.030, workPermitSE: 0.005, citizenship: 0.018, citizenshipSE: 0.005 }
+            ],
+            foughtInWar: [
+                { level: 'Did not fight', baseline: true },
+                { level: 'Fought with Assad', neighbor: -0.065, neighborSE: 0.007, workPermit: -0.069, workPermitSE: 0.007, citizenship: -0.045, citizenshipSE: 0.007 },
+                { level: 'Fought with FSA', neighbor: 0.015, neighborSE: 0.007, workPermit: 0.020, workPermitSE: 0.007, citizenship: 0.020, citizenshipSE: 0.007 }
+            ],
+            torture: [
+                { level: 'Not tortured', baseline: true },
+                { level: 'Tortured in Syria', neighbor: 0.011, neighborSE: 0.005, workPermit: 0.019, workPermitSE: 0.005, citizenship: 0.008, citizenshipSE: 0.005 }
+            ]
         };
 
-        const generateData = () => {
-            const rawData = {
-                gender: [
-                    { level: 'Male', baseline: true },
-                    { level: 'Female', neighbor: 0.033, neighborSE: 0.005, workPermit: 0.023, workPermitSE: 0.005, citizenship: 0.020, citizenshipSE: 0.005 }
-                ],
-                age: [
-                    { level: 'Middle-aged', baseline: true },
-                    { level: 'Young', neighbor: 0.006, neighborSE: 0.007, workPermit: 0.004, workPermitSE: 0.007, citizenship: 0.002, citizenshipSE: 0.006 },
-                    { level: 'Old', neighbor: 0.004, neighborSE: 0.007, workPermit: -0.003, workPermitSE: 0.007, citizenship: 0.003, citizenshipSE: 0.007 }
-                ],
-                ethnicity: [
-                    { level: 'Turkmen', baseline: true },
-                    { level: 'Arab', neighbor: -0.064, neighborSE: 0.007, workPermit: -0.064, workPermitSE: 0.007, citizenship: -0.058, citizenshipSE: 0.006 },
-                    { level: 'Kurd', neighbor: -0.069, neighborSE: 0.007, workPermit: -0.067, workPermitSE: 0.007, citizenship: -0.056, citizenshipSE: 0.006 }
-                ],
-                religion: [
-                    { level: 'Sunni', baseline: true },
-                    { level: 'Alawite', neighbor: -0.009, neighborSE: 0.007, workPermit: -0.003, workPermitSE: 0.007, citizenship: -0.006, citizenshipSE: 0.006 },
-                    { level: 'Christian', neighbor: -0.041, neighborSE: 0.007, workPermit: -0.034, workPermitSE: 0.007, citizenship: -0.034, citizenshipSE: 0.007 }
-                ],
-                education: [
-                    { level: 'No education', baseline: true },
-                    { level: 'Primary school', neighbor: -0.015, neighborSE: 0.009, workPermit: 0.002, workPermitSE: 0.009, citizenship: -0.005, citizenshipSE: 0.009 },
-                    { level: 'Middle school', neighbor: 0.0003, neighborSE: 0.009, workPermit: 0.011, workPermitSE: 0.009, citizenship: 0.009, citizenshipSE: 0.008 },
-                    { level: 'High school', neighbor: 0.006, neighborSE: 0.008, workPermit: 0.028, workPermitSE: 0.009, citizenship: 0.028, citizenshipSE: 0.008 },
-                    { level: 'University', neighbor: 0.030, neighborSE: 0.009, workPermit: 0.053, workPermitSE: 0.009, citizenship: 0.038, citizenshipSE: 0.008 }
-                ],
-                localFriends: [
-                    { level: 'No Turkish friends', baseline: true },
-                    { level: 'Has Turkish friends', neighbor: 0.018, neighborSE: 0.005, workPermit: 0.011, workPermitSE: 0.005, citizenship: 0.011, citizenshipSE: 0.005 }
-                ],
-                turkish: [
-                    { level: 'Does not know Turkish', baseline: true },
-                    { level: 'Knows Turkish', neighbor: 0.039, neighborSE: 0.005, workPermit: 0.030, workPermitSE: 0.005, citizenship: 0.018, citizenshipSE: 0.005 }
-                ],
-                foughtInWar: [
-                    { level: 'Did not fight', baseline: true },
-                    { level: 'Fought with Assad', neighbor: -0.065, neighborSE: 0.007, workPermit: -0.069, workPermitSE: 0.007, citizenship: -0.045, citizenshipSE: 0.007 },
-                    { level: 'Fought with FSA', neighbor: 0.015, neighborSE: 0.007, workPermit: 0.020, workPermitSE: 0.007, citizenship: 0.020, citizenshipSE: 0.007 }
-                ],
-                torture: [
-                    { level: 'Not tortured', baseline: true },
-                    { level: 'Tortured in Syria', neighbor: 0.011, neighborSE: 0.005, workPermit: 0.019, workPermitSE: 0.005, citizenship: 0.008, citizenshipSE: 0.005 }
-                ]
+        const processedData = {};
+        Object.keys(rawData).forEach(attr => {
+            processedData[attr] = rawData[attr].map(item => {
+                if (item.baseline) {
+                    return { level: item.level, neighbor: 0, workPermit: 0, citizenship: 0, neighborCI: [0,0], workPermitCI: [0,0], citizenshipCI: [0,0], isBaseline: true };
+                }
+                return {
+                    level: item.level,
+                    neighbor: item.neighbor,
+                    workPermit: item.workPermit,
+                    citizenship: item.citizenship,
+                    neighborCI: calculateCI(item.neighbor, item.neighborSE),
+                    workPermitCI: calculateCI(item.workPermit, item.workPermitSE),
+                    citizenshipCI: calculateCI(item.citizenship, item.citizenshipSE),
+                    isBaseline: false
+                };
+            });
+        });
+
+        function App() {
+            const [outcome, setOutcome] = useState('neighbor');
+            const [attribute, setAttribute] = useState('torture');
+            const [showCI, setShowCI] = useState(true);
+            const [compare, setCompare] = useState(false);
+
+            const labels = {
+                gender: 'Gender', age: 'Age', ethnicity: 'Ethnicity', religion: 'Religion',
+                education: 'Education Level', localFriends: 'Local Connections',
+                turkish: 'Turkish Language', foughtInWar: 'Conflict Involvement',
+                torture: 'Torture Experience'
             };
 
-            const processedData = {};
-            Object.keys(rawData).forEach(attribute => {
-                processedData[attribute] = rawData[attribute].map(item => {
-                    if (item.baseline) {
-                        return {
-                            level: item.level,
-                            neighbor: 0,
-                            workPermit: 0,
-                            citizenship: 0,
-                            neighborCI: [0, 0],
-                            workPermitCI: [0, 0],
-                            citizenshipCI: [0, 0],
-                            isBaseline: true
-                        };
-                    } else {
-                        return {
-                            level: item.level,
-                            neighbor: item.neighbor,
-                            workPermit: item.workPermit,
-                            citizenship: item.citizenship,
-                            neighborCI: calculateCI(item.neighbor, item.neighborSE),
-                            workPermitCI: calculateCI(item.workPermit, item.workPermitSE),
-                            citizenshipCI: calculateCI(item.citizenship, item.citizenshipSE),
-                            isBaseline: false
-                        };
-                    }
-                });
-            });
-
-            return processedData;
-        };
-
-        const App = () => {
-            const [selectedOutcome, setSelectedOutcome] = useState('neighbor');
-            const [selectedAttribute, setSelectedAttribute] = useState('torture');
-            const [showCI, setShowCI] = useState(true);
-            const [comparisonMode, setComparisonMode] = useState(false);
-
-            const data = generateData();
-
-            const outcomeLabels = {
+            const outcomes = {
                 neighbor: 'Accept as Neighbor',
                 workPermit: 'Support Work Permit',
                 citizenship: 'Support Citizenship'
             };
 
-            const attributeLabels = {
-                gender: 'Gender',
-                age: 'Age',
-                ethnicity: 'Ethnicity',
-                religion: 'Religion',
-                education: 'Education Level',
-                localFriends: 'Local Connections',
-                turkish: 'Turkish Language',
-                foughtInWar: 'Conflict Involvement',
-                torture: 'Torture Experience'
-            };
+            const baseline = processedData[attribute].find(i => i.isBaseline)?.level || '';
+            const chartData = processedData[attribute].filter(i => !i.isBaseline);
 
-            const getBaselineName = () => {
-                const baselineItem = data[selectedAttribute].find(item => item.isBaseline);
-                return baselineItem ? baselineItem.level : '';
-            };
-
-            const getChartData = () => {
-                const nonBaselineData = data[selectedAttribute].filter(item => !item.isBaseline);
-
-                if (comparisonMode) {
-                    return nonBaselineData.map(item => ({
-                        level: item.level,
-                        'Accept as Neighbor': item.neighbor,
-                        'Work Permit': item.workPermit,
-                        'Citizenship': item.citizenship
-                    }));
-                }
-
-                return nonBaselineData.map(item => ({
-                    level: item.level,
-                    effect: item[selectedOutcome],
-                    ciLower: item[`${selectedOutcome}CI`][0],
-                    ciUpper: item[`${selectedOutcome}CI`][1]
-                }));
-            };
-
-            const CustomTooltip = ({ active, payload }) => {
-                if (active && payload && payload.length) {
-                    return (
-                        <div style={{ backgroundColor: 'white', padding: '12px', border: '1px solid #ccc', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
-                            <p style={{ fontWeight: 600, marginBottom: '4px' }}>{payload[0].payload.level}</p>
-                            {comparisonMode ? (
-                                payload.map((entry, index) => (
-                                    <p key={index} style={{ color: entry.color, margin: '2px 0' }}>
-                                        {entry.name}: {(entry.value * 100).toFixed(1)}pp
-                                    </p>
-                                ))
-                            ) : (
-                                <>
-                                    <p style={{ color: '#3b82f6', margin: '4px 0' }}>
-                                        Effect: {(payload[0].value * 100).toFixed(1)} percentage points
-                                    </p>
-                                    {showCI && (
-                                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0' }}>
-                                            95% CI: [{(payload[0].payload.ciLower * 100).toFixed(1)}, {(payload[0].payload.ciUpper * 100).toFixed(1)}]
-                                        </p>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    );
-                }
-                return null;
-            };
+            const data = compare
+                ? chartData.map(i => ({ level: i.level, 'Accept as Neighbor': i.neighbor, 'Work Permit': i.workPermit, 'Citizenship': i.citizenship }))
+                : chartData.map(i => ({ level: i.level, effect: i[outcome], ciLower: i[`${outcome}CI`][0], ciUpper: i[`${outcome}CI`][1] }));
 
             return (
-                <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #e0e7ff)', padding: '24px' }}>
-                    <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
-                        <div style={{ backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', padding: '24px', marginBottom: '24px' }}>
-                            <h1 style={{ fontSize: '30px', fontWeight: 'bold', color: '#1f2937', marginBottom: '8px' }}>
-                                Humanitarian Concerns and Syrian Refugee Acceptance
-                            </h1>
-                            <p style={{ color: '#6b7280', marginBottom: '8px' }}>
-                                Interactive visualization of conjoint experiment results from Turkey
-                            </p>
-                            <p style={{ fontSize: '14px', color: '#9ca3af' }}>
-                                Research by Anna Getmansky, Konstantinos Matakos, and Tolga Sinmazdemir
-                            </p>
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                            <h1 className="text-3xl font-bold text-gray-800 mb-2">Humanitarian Concerns and Syrian Refugee Acceptance</h1>
+                            <p className="text-gray-600">Interactive visualization of conjoint experiment results from Turkey</p>
+                            <p className="text-sm text-gray-500 mt-2">Anna Getmansky, Konstantinos Matakos, and Tolga Sinmazdemir</p>
                         </div>
 
-                        <div style={{ backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', padding: '24px', marginBottom: '24px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+                        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                            <div className="grid md:grid-cols-2 gap-6">
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
-                                        Select Refugee Attribute
-                                    </label>
-                                    <select
-                                        value={selectedAttribute}
-                                        onChange={(e) => setSelectedAttribute(e.target.value)}
-                                        style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', backgroundColor: 'white', cursor: 'pointer' }}
-                                    >
-                                        {Object.entries(attributeLabels).map(([key, label]) => (
-                                            <option key={key} value={key}>{label}</option>
-                                        ))}
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Select Refugee Attribute</label>
+                                    <select value={attribute} onChange={e => setAttribute(e.target.value)}
+                                        className="w-full p-3 border border-gray-300 rounded-lg bg-white">
+                                        {Object.entries(labels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                                     </select>
                                 </div>
-
-                                {!comparisonMode && (
+                                {!compare && (
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
-                                            Select Outcome
-                                        </label>
-                                        <select
-                                            value={selectedOutcome}
-                                            onChange={(e) => setSelectedOutcome(e.target.value)}
-                                            style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', backgroundColor: 'white', cursor: 'pointer' }}
-                                        >
-                                            {Object.entries(outcomeLabels).map(([key, label]) => (
-                                                <option key={key} value={key}>{label}</option>
-                                            ))}
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Select Outcome</label>
+                                        <select value={outcome} onChange={e => setOutcome(e.target.value)}
+                                            className="w-full p-3 border border-gray-300 rounded-lg bg-white">
+                                            {Object.entries(outcomes).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                                         </select>
                                     </div>
                                 )}
                             </div>
-
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '24px' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={comparisonMode}
-                                        onChange={(e) => setComparisonMode(e.target.checked)}
-                                        style={{ width: '16px', height: '16px' }}
-                                    />
-                                    <span style={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>Compare all outcomes</span>
+                            <div className="flex gap-4 mt-6">
+                                <label className="flex items-center gap-2">
+                                    <input type="checkbox" checked={compare} onChange={e => setCompare(e.target.checked)} />
+                                    <span className="text-sm font-medium">Compare all outcomes</span>
                                 </label>
-
-                                {!comparisonMode && (
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={showCI}
-                                            onChange={(e) => setShowCI(e.target.checked)}
-                                            style={{ width: '16px', height: '16px' }}
-                                        />
-                                        <span style={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>Show confidence intervals</span>
+                                {!compare && (
+                                    <label className="flex items-center gap-2">
+                                        <input type="checkbox" checked={showCI} onChange={e => setShowCI(e.target.checked)} />
+                                        <span className="text-sm font-medium">Show confidence intervals</span>
                                     </label>
                                 )}
                             </div>
                         </div>
 
-                        <div style={{ backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', padding: '24px' }}>
-                            <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', marginBottom: '16px' }}>
-                                {comparisonMode
-                                    ? `Effect of ${attributeLabels[selectedAttribute]} on All Outcomes (baseline: ${getBaselineName()})`
-                                    : `Effect of ${attributeLabels[selectedAttribute]} on ${outcomeLabels[selectedOutcome]} (baseline: ${getBaselineName()})`
-                                }
+                        <div className="bg-white rounded-lg shadow-lg p-6">
+                            <h2 className="text-xl font-bold text-gray-800 mb-4">
+                                {compare
+                                    ? `Effect of ${labels[attribute]} on All Outcomes (baseline: ${baseline})`
+                                    : `Effect of ${labels[attribute]} on ${outcomes[outcome]} (baseline: ${baseline})`}
                             </h2>
 
                             <ResponsiveContainer width="100%" height={400}>
-                                <BarChart data={getChartData()} margin={{ top: 20, right: 30, left: 40, bottom: 60 }}>
+                                <BarChart data={data} margin={{ top: 20, right: 30, left: 40, bottom: 60 }}>
                                     <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis
-                                        dataKey="level"
-                                        angle={-45}
-                                        textAnchor="end"
-                                        height={80}
-                                        interval={0}
-                                    />
-                                    <YAxis
-                                        label={{ value: 'Effect (percentage points)', angle: -90, position: 'insideLeft' }}
-                                        domain={[-0.1, 0.1]}
-                                        ticks={[-0.1, -0.05, 0, 0.05, 0.1]}
-                                        tickFormatter={(value) => (value * 100).toFixed(0)}
-                                    />
-                                    <Tooltip content={<CustomTooltip />} />
+                                    <XAxis dataKey="level" angle={-45} textAnchor="end" height={80} interval={0} />
+                                    <YAxis label={{ value: 'Effect (percentage points)', angle: -90, position: 'insideLeft' }}
+                                        domain={[-0.1, 0.1]} ticks={[-0.1, -0.05, 0, 0.05, 0.1]}
+                                        tickFormatter={v => (v * 100).toFixed(0)} />
+                                    <Tooltip />
                                     <ReferenceLine y={0} stroke="#666" strokeWidth={2} />
-
-                                    {comparisonMode ? (
+                                    {compare ? (
                                         <>
                                             <Legend />
                                             <Bar dataKey="Accept as Neighbor" fill="#3b82f6" />
@@ -291,68 +177,38 @@
                                         </>
                                     ) : (
                                         <Bar dataKey="effect">
-                                            {getChartData().map((entry, index) => (
-                                                <Cell
-                                                    key={`cell-${index}`}
-                                                    fill={entry.effect > 0 ? '#10b981' : '#ef4444'}
-                                                />
-                                            ))}
+                                            {data.map((e, i) => <Cell key={i} fill={e.effect > 0 ? '#10b981' : '#ef4444'} />)}
                                         </Bar>
                                     )}
                                 </BarChart>
                             </ResponsiveContainer>
 
-                            <div style={{ marginTop: '24px', padding: '16px', backgroundColor: '#eff6ff', borderRadius: '8px' }}>
-                                <h3 style={{ fontWeight: 600, color: '#1f2937', marginBottom: '8px' }}>How to read this chart:</h3>
-                                <ul style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6' }}>
-                                    <li>• The baseline (reference) category is shown in the title and has an effect of 0</li>
-                                    <li>• <span style={{ fontWeight: 600, color: '#10b981' }}>Green bars</span> = Positive effect (increases acceptance relative to baseline)</li>
-                                    <li>• <span style={{ fontWeight: 600, color: '#ef4444' }}>Red bars</span> = Negative effect (decreases acceptance relative to baseline)</li>
-                                    <li>• Values are in percentage points (e.g., 0.05 = 5 percentage point increase)</li>
-                                    {showCI && !comparisonMode && <li>• Error bars show 95% confidence intervals</li>}
+                            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                                <h3 className="font-semibold text-gray-800 mb-2">How to read this chart:</h3>
+                                <ul className="text-sm text-gray-700 space-y-1">
+                                    <li>• Baseline (reference) category is shown in the title with effect of 0</li>
+                                    <li>• <span className="font-semibold text-green-600">Green bars</span> = Positive effect</li>
+                                    <li>• <span className="font-semibold text-red-600">Red bars</span> = Negative effect</li>
+                                    <li>• Values in percentage points (0.05 = 5pp increase)</li>
                                 </ul>
                             </div>
                         </div>
 
-                        <div style={{ backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', padding: '24px', marginTop: '24px' }}>
-                            <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', marginBottom: '16px' }}>Key Findings</h2>
-                            <div style={{ color: '#374151', lineHeight: '1.8' }}>
-                                <p style={{ marginBottom: '12px' }}>
-                                    <strong>Torture information matters:</strong> Learning that a refugee was tortured in Syria
-                                    increases willingness to accept them as a neighbor by 1.1 percentage points and support for
-                                    work permits by 1.9 percentage points (compared to not mentioning torture).
-                                </p>
-                                <p style={{ marginBottom: '12px' }}>
-                                    <strong>Language proficiency is crucial:</strong> Refugees who know Turkish are 3.9 percentage
-                                    points more likely to be accepted as neighbors and 3.0 percentage points more likely to receive
-                                    support for work permits than those who don't speak Turkish.
-                                </p>
-                                <p style={{ marginBottom: '12px' }}>
-                                    <strong>Education matters for economic integration:</strong> University-educated refugees receive
-                                    5.3 percentage points more support for work permits than those with no education, though the effect
-                                    on neighbor acceptance is smaller (3.0 percentage points).
-                                </p>
-                                <p style={{ marginBottom: '12px' }}>
-                                    <strong>Ethnicity and religion matter:</strong> Arab and Kurdish refugees face 6-7 percentage point
-                                    penalties compared to Turkmen refugees. Christian refugees also face a 4 percentage point penalty
-                                    relative to Sunni refugees.
-                                </p>
-                                <p style={{ marginBottom: '12px' }}>
-                                    <strong>Fighting for Assad is severely penalized:</strong> Refugees who fought with Assad face
-                                    a 6.5-6.9 percentage point penalty, while those who fought with the FSA receive modest positive
-                                    effects (1.5-2.0 percentage points).
-                                </p>
-                                <p style={{ fontSize: '14px', color: '#6b7280', fontStyle: 'italic', marginTop: '16px' }}>
-                                    Note: All effects are relative to baseline (reference) categories. Baseline categories are indicated
-                                    in the chart titles and have an effect of 0 by definition. Effects are from regression models with
-                                    respondent fixed effects.
-                                </p>
+                        <div className="bg-white rounded-lg shadow-lg p-6 mt-6">
+                            <h2 className="text-xl font-bold text-gray-800 mb-4">Key Findings</h2>
+                            <div className="text-gray-700 space-y-3">
+                                <p><strong>Torture information matters:</strong> Increases neighbor acceptance by 1.1pp and work permit support by 1.9pp.</p>
+                                <p><strong>Language is crucial:</strong> Knowing Turkish increases neighbor acceptance by 3.9pp and work permit support by 3.0pp.</p>
+                                <p><strong>Education matters:</strong> University education increases work permit support by 5.3pp.</p>
+                                <p><strong>Ethnicity matters:</strong> Arab and Kurdish refugees face 6-7pp penalties vs Turkmen.</p>
+                                <p><strong>Fighting for Assad penalized:</strong> 6.5-6.9pp penalty; FSA fighters get 1.5-2.0pp boost.</p>
+                                <p className="text-sm text-gray-600 italic mt-4">Note: Effects relative to baseline categories with respondent fixed effects.</p>
                             </div>
                         </div>
                     </div>
                 </div>
             );
-        };
+        }
 
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
