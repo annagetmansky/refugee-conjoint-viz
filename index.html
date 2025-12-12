@@ -1,10 +1,203 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Test Page</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refugee Acceptance Study</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/recharts@2/dist/Recharts.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
-    <h1>Hello! This is working!</h1>
-    <p>If you can see this, GitHub Pages is working correctly.</p>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState } = React;
+        const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, Cell } = Recharts;
+
+        const rawData = {
+            torture: [
+                { level: 'Not tortured', baseline: true },
+                { level: 'Tortured in Syria', neighbor: 0.011, neighborSE: 0.005, workPermit: 0.019, workPermitSE: 0.005, citizenship: 0.008, citizenshipSE: 0.005 }
+            ],
+            gender: [
+                { level: 'Male', baseline: true },
+                { level: 'Female', neighbor: 0.033, neighborSE: 0.005, workPermit: 0.023, workPermitSE: 0.005, citizenship: 0.020, citizenshipSE: 0.005 }
+            ],
+            age: [
+                { level: 'Middle-aged', baseline: true },
+                { level: 'Young', neighbor: 0.006, neighborSE: 0.007, workPermit: 0.004, workPermitSE: 0.007, citizenship: 0.002, citizenshipSE: 0.006 },
+                { level: 'Old', neighbor: 0.004, neighborSE: 0.007, workPermit: -0.003, workPermitSE: 0.007, citizenship: 0.003, citizenshipSE: 0.007 }
+            ],
+            ethnicity: [
+                { level: 'Turkmen', baseline: true },
+                { level: 'Arab', neighbor: -0.064, neighborSE: 0.007, workPermit: -0.064, workPermitSE: 0.007, citizenship: -0.058, citizenshipSE: 0.006 },
+                { level: 'Kurd', neighbor: -0.069, neighborSE: 0.007, workPermit: -0.067, workPermitSE: 0.007, citizenship: -0.056, citizenshipSE: 0.006 }
+            ],
+            religion: [
+                { level: 'Sunni', baseline: true },
+                { level: 'Alawite', neighbor: -0.009, neighborSE: 0.007, workPermit: -0.003, workPermitSE: 0.007, citizenship: -0.006, citizenshipSE: 0.006 },
+                { level: 'Christian', neighbor: -0.041, neighborSE: 0.007, workPermit: -0.034, workPermitSE: 0.007, citizenship: -0.034, citizenshipSE: 0.007 }
+            ],
+            education: [
+                { level: 'No education', baseline: true },
+                { level: 'Primary school', neighbor: -0.015, neighborSE: 0.009, workPermit: 0.002, workPermitSE: 0.009, citizenship: -0.005, citizenshipSE: 0.009 },
+                { level: 'Middle school', neighbor: 0.0003, neighborSE: 0.009, workPermit: 0.011, workPermitSE: 0.009, citizenship: 0.009, citizenshipSE: 0.008 },
+                { level: 'High school', neighbor: 0.006, neighborSE: 0.008, workPermit: 0.028, workPermitSE: 0.009, citizenship: 0.028, citizenshipSE: 0.008 },
+                { level: 'University', neighbor: 0.030, neighborSE: 0.009, workPermit: 0.053, workPermitSE: 0.009, citizenship: 0.038, citizenshipSE: 0.008 }
+            ],
+            localFriends: [
+                { level: 'No Turkish friends', baseline: true },
+                { level: 'Has Turkish friends', neighbor: 0.018, neighborSE: 0.005, workPermit: 0.011, workPermitSE: 0.005, citizenship: 0.011, citizenshipSE: 0.005 }
+            ],
+            turkish: [
+                { level: 'Does not know Turkish', baseline: true },
+                { level: 'Knows Turkish', neighbor: 0.039, neighborSE: 0.005, workPermit: 0.030, workPermitSE: 0.005, citizenship: 0.018, citizenshipSE: 0.005 }
+            ],
+            foughtInWar: [
+                { level: 'Did not fight', baseline: true },
+                { level: 'Fought with Assad', neighbor: -0.065, neighborSE: 0.007, workPermit: -0.069, workPermitSE: 0.007, citizenship: -0.045, citizenshipSE: 0.007 },
+                { level: 'Fought with FSA', neighbor: 0.015, neighborSE: 0.007, workPermit: 0.020, workPermitSE: 0.007, citizenship: 0.020, citizenshipSE: 0.007 }
+            ]
+        };
+
+        const processData = () => {
+            const result = {};
+            Object.keys(rawData).forEach(attr => {
+                result[attr] = rawData[attr].map(item => {
+                    if (item.baseline) return { 
+                        level: item.level, neighbor: 0, workPermit: 0, citizenship: 0, 
+                        neighborCI: [0,0], workPermitCI: [0,0], citizenshipCI: [0,0], isBaseline: true 
+                    };
+                    return {
+                        level: item.level, neighbor: item.neighbor, workPermit: item.workPermit, citizenship: item.citizenship,
+                        neighborCI: [item.neighbor - 1.96*item.neighborSE, item.neighbor + 1.96*item.neighborSE],
+                        workPermitCI: [item.workPermit - 1.96*item.workPermitSE, item.workPermit + 1.96*item.workPermitSE],
+                        citizenshipCI: [item.citizenship - 1.96*item.citizenshipSE, item.citizenship + 1.96*item.citizenshipSE],
+                        isBaseline: false
+                    };
+                });
+            });
+            return result;
+        };
+
+        function App() {
+            const [outcome, setOutcome] = useState('neighbor');
+            const [attribute, setAttribute] = useState('torture');
+            const [showCI, setShowCI] = useState(true);
+            const [compare, setCompare] = useState(false);
+            
+            const data = processData();
+            const labels = {
+                torture: 'Torture Experience', gender: 'Gender', age: 'Age', ethnicity: 'Ethnicity', 
+                religion: 'Religion', education: 'Education Level', localFriends: 'Local Connections',
+                turkish: 'Turkish Language', foughtInWar: 'Conflict Involvement'
+            };
+            const outcomes = { neighbor: 'Accept as Neighbor', workPermit: 'Support Work Permit', citizenship: 'Support Citizenship' };
+            
+            const baseline = data[attribute].find(i => i.isBaseline)?.level || '';
+            const chartData = data[attribute].filter(i => !i.isBaseline);
+            const plotData = compare
+                ? chartData.map(i => ({ level: i.level, 'Neighbor': i.neighbor, 'Work Permit': i.workPermit, 'Citizenship': i.citizenship }))
+                : chartData.map(i => ({ level: i.level, effect: i[outcome], ci: i[`${outcome}CI`] }));
+
+            return (
+                <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '20px' }}>
+                    <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: 'white', borderRadius: '10px', padding: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+                        <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '10px', color: '#1a202c' }}>
+                            Humanitarian Concerns and Syrian Refugee Acceptance
+                        </h1>
+                        <p style={{ color: '#718096', marginBottom: '5px' }}>Interactive visualization of conjoint experiment results from Turkey</p>
+                        <p style={{ fontSize: '14px', color: '#a0aec0' }}>Anna Getmansky, Konstantinos Matakos, and Tolga Sinmazdemir</p>
+                        
+                        <div style={{ marginTop: '30px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+                            <div>
+                                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#2d3748' }}>Refugee Attribute</label>
+                                <select value={attribute} onChange={e => setAttribute(e.target.value)}
+                                    style={{ width: '100%', padding: '10px', border: '2px solid #e2e8f0', borderRadius: '6px', fontSize: '14px' }}>
+                                    {Object.entries(labels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                                </select>
+                            </div>
+                            {!compare && (
+                                <div>
+                                    <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#2d3748' }}>Outcome</label>
+                                    <select value={outcome} onChange={e => setOutcome(e.target.value)}
+                                        style={{ width: '100%', padding: '10px', border: '2px solid #e2e8f0', borderRadius: '6px', fontSize: '14px' }}>
+                                        {Object.entries(outcomes).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div style={{ marginTop: '20px', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                <input type="checkbox" checked={compare} onChange={e => setCompare(e.target.checked)} 
+                                    style={{ width: '18px', height: '18px' }} />
+                                <span style={{ fontSize: '14px', fontWeight: '500' }}>Compare all outcomes</span>
+                            </label>
+                            {!compare && (
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                    <input type="checkbox" checked={showCI} onChange={e => setShowCI(e.target.checked)}
+                                        style={{ width: '18px', height: '18px' }} />
+                                    <span style={{ fontSize: '14px', fontWeight: '500' }}>Show 95% CI</span>
+                                </label>
+                            )}
+                        </div>
+
+                        <div style={{ marginTop: '30px' }}>
+                            <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '20px', color: '#2d3748' }}>
+                                {compare ? `${labels[attribute]} on All Outcomes` : `${labels[attribute]} on ${outcomes[outcome]}`}
+                                <span style={{ fontSize: '16px', fontWeight: 'normal', color: '#718096' }}> (baseline: {baseline})</span>
+                            </h2>
+                            
+                            <ResponsiveContainer width="100%" height={400}>
+                                <BarChart data={plotData} margin={{ top: 20, right: 30, left: 50, bottom: 80 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                    <XAxis dataKey="level" angle={-45} textAnchor="end" height={100} 
+                                        style={{ fontSize: '12px' }} interval={0} />
+                                    <YAxis domain={[-0.1, 0.1]} ticks={[-0.1, -0.05, 0, 0.05, 0.1]}
+                                        tickFormatter={v => (v*100).toFixed(0)} 
+                                        label={{ value: 'Effect (percentage points)', angle: -90, position: 'insideLeft' }} />
+                                    <Tooltip formatter={(v) => (v*100).toFixed(1) + 'pp'} />
+                                    <ReferenceLine y={0} stroke="#4a5568" strokeWidth={2} />
+                                    {compare ? (
+                                        <>
+                                            <Legend />
+                                            <Bar dataKey="Neighbor" fill="#4299e1" />
+                                            <Bar dataKey="Work Permit" fill="#48bb78" />
+                                            <Bar dataKey="Citizenship" fill="#9f7aea" />
+                                        </>
+                                    ) : (
+                                        <Bar dataKey="effect">
+                                            {plotData.map((entry, i) => 
+                                                <Cell key={i} fill={entry.effect > 0 ? '#48bb78' : '#f56565'} />
+                                            )}
+                                        </Bar>
+                                    )}
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        <div style={{ marginTop: '30px', padding: '20px', backgroundColor: '#edf2f7', borderRadius: '8px' }}>
+                            <h3 style={{ fontWeight: 'bold', marginBottom: '10px', color: '#2d3748' }}>Key Findings</h3>
+                            <ul style={{ lineHeight: '1.8', color: '#4a5568', fontSize: '14px' }}>
+                                <li><strong>Torture information:</strong> +1.1pp neighbor acceptance, +1.9pp work permit support</li>
+                                <li><strong>Turkish language:</strong> +3.9pp neighbor acceptance, +3.0pp work permit support</li>
+                                <li><strong>University education:</strong> +5.3pp work permit support, +3.0pp neighbor acceptance</li>
+                                <li><strong>Ethnicity penalties:</strong> Arab/Kurd face 6-7pp penalties vs Turkmen baseline</li>
+                                <li><strong>Assad fighters:</strong> Face 6.5-6.9pp penalty; FSA fighters get +1.5-2.0pp</li>
+                            </ul>
+                            <p style={{ fontSize: '13px', color: '#718096', fontStyle: 'italic', marginTop: '12px' }}>
+                                All effects relative to baseline categories. Models include respondent fixed effects.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
 </body>
 </html>
